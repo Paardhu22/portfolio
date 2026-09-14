@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Portfolio
 
-## Getting Started
-
-First, run the development server:
+A single-page portfolio built with Next.js 16, Tailwind v4 and Motion.
+Design is a rebuild of a creative-studio landing page: a panel-wipe intro,
+a cursor spotlight that pulls colour out of a desaturated hero, an oversized
+display word cropped by the fold, and a slide-down menu panel.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run dev     # http://localhost:3000
+npm run build   # production build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Making it yours
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Almost everything lives in **`lib/content.ts`** — name, headline, bio,
+projects, skills, experience, education, socials. Edit that one file and the
+whole page follows. Nothing else needs touching for a content swap.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+A few things worth doing before you ship:
 
-## Learn More
+| What | Where |
+| --- | --- |
+| Your name, headline, bio | `lib/content.ts` → `profile` |
+| Projects (title, summary, tags, links, card colours) | `lib/content.ts` → `projects` |
+| Experience + education | `lib/content.ts` → `journey` |
+| **Add `public/resume.pdf`** — the hero links to it | `public/` |
+| Real social URLs (they're placeholder `#` links now) | `lib/content.ts` → `profile.socials` |
 
-To learn more about Next.js, take a look at the following resources:
+### Colours and type
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Design tokens are declared once in `app/globals.css` under `@theme`:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```css
+--color-ink: #111111;   /* text */
+--color-paper: #e4e4e4; /* hero background */
+--color-cream: #f4f1e8; /* light sections */
+--color-accent: #75c5de;/* the blue */
+--color-deep: #0b0b0b;  /* dark sections */
+```
 
-## Deploy on Vercel
+Change `--color-accent` and the whole site re-skins — buttons, menu, badges,
+hover states and the hero artwork's blue all read from it.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### The hero artwork
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+`public/hero-art.svg` is an abstract composition drawn so both hero layers
+share identical geometry. To use a photo of yourself instead, drop it in
+`public/` and change the two `backgroundImage` URLs in `components/Hero.tsx`
+— the greyscale base and the full-colour spotlight layer point at the same
+file on purpose.
+
+## How the spotlight works
+
+The reference implementation redrew a canvas gradient every frame and
+re-encoded it with `canvas.toDataURL()` to use as a CSS mask — a full
+base64 round trip at 60fps.
+
+This version masks a fixed circle once, then moves two elements in opposite
+directions: the lens translates to the cursor, the artwork inside it
+translates back by the same amount. The image looks pinned to the panel
+while only compositor transforms change per frame — no repaint, no
+re-encoding. See `components/Hero.tsx`.
+
+## Behaviour notes
+
+- The intro runs once per tab. A pre-paint inline script in
+  `components/Splash.tsx` sets `data-splash-seen`, so a reload doesn't
+  replay it.
+- `prefers-reduced-motion` shortcuts the intro, scroll reveals, marquee and
+  spotlight.
+- Coarse pointers (touch) skip the spotlight entirely and get the hero art
+  in full colour instead.
+
+## Deploy
+
+Push to GitHub and import at [vercel.com/new](https://vercel.com/new) — no
+configuration needed. `npm run build` output is fully static.

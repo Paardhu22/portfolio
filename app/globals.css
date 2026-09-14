@@ -1,26 +1,52 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@theme {
+  --font-roman: var(--font-cinzel), ui-serif, Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  /* Off-white with a faint violet cast, so it sits in the same family as the
+     #2F293A grid lines instead of reading as a separate neutral.
+     Kept in sync by hand with scanColor's default in components/GridScan.tsx. */
+  --color-accent: #D9D6DE;
+
+  --animate-rise-in: rise-in 800ms var(--ease-out-expo) both;
+
+  @keyframes rise-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  --animate-slide-in-right: slide-in-right 450ms var(--ease-out-expo) both;
+  --animate-slide-in-left: slide-in-left 450ms var(--ease-out-expo) both;
+
+  @keyframes slide-in-right {
+    from { opacity: 0; transform: translateX(18px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  @keyframes slide-in-left {
+    from { opacity: 0; transform: translateX(-18px); }
+    to { opacity: 1; transform: none; }
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* The controls hint has to name the input the visitor actually has. Doing that
+   in CSS rather than JS avoids both a hydration mismatch and a frame of the
+   wrong hint on first paint; [data-mode] then lets JS correct it on hybrid
+   machines the moment a real key or a real finger says which one is in use. */
+.hint-touch { display: none; }
+
+@media (hover: none) and (pointer: coarse) {
+  .hint-keys { display: none; }
+  .hint-touch { display: flex; }
 }
+
+[data-mode='keys'] .hint-keys { display: flex; }
+[data-mode='keys'] .hint-touch { display: none; }
+[data-mode='touch'] .hint-keys { display: none; }
+[data-mode='touch'] .hint-touch { display: flex; }
+
+/* No pull-to-refresh or overscroll glow stealing a throttle drag. */
+html, body { overscroll-behavior: none; }
