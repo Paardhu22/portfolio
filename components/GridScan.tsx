@@ -57,8 +57,8 @@ type GridScanProps = {
   onCheckpointChange?: (index: number) => void;
   /** Freezes the corridor - no travel, no rendering - while another world is on screen. */
   paused?: boolean;
-  /** Called every frame with the current depth, for effects that track the flight. */
-  onTravel?: (depth: number) => void;
+  /** Called every frame with the current depth and speed, for effects that track the flight. */
+  onTravel?: (depth: number, velocity: number) => void;
   scanStatic?: boolean;
   scanAnchor?: number;
   lightMode?: boolean;
@@ -429,6 +429,11 @@ export const GridScan: React.FC<GridScanProps> = ({
   boostMultiplierRef.current = boostMultiplier;
   const shakeAmountRef = useRef(shakeAmount);
   shakeAmountRef.current = shakeAmount;
+  // The tick drives these off speed every frame, so it needs the live prop
+  // rather than the value captured when the renderer was built. Kept in sync
+  // from the effect below, which already depends on both.
+  const chromaBaseRef = useRef(chromaticAberration);
+  const noiseBaseRef = useRef(noiseIntensity);
   const hoverAmountRef = useRef(hoverAmount);
   hoverAmountRef.current = hoverAmount;
   const hoverSpeedRef = useRef(hoverSpeed);
@@ -725,7 +730,7 @@ export const GridScan: React.FC<GridScanProps> = ({
         if (travelVelRef.current > 0) travelVelRef.current = 0;
       }
       material.uniforms.uTravel.value = travelRef.current;
-      onTravelRef.current?.(travelRef.current);
+      onTravelRef.current?.(travelRef.current, travelVelRef.current);
 
       if (end !== undefined) {
         // Arriving means coming to rest, not merely getting close.
@@ -799,6 +804,18 @@ export const GridScan: React.FC<GridScanProps> = ({
       material.uniforms.uTilt.value +=
         rm * shakeRef.current * 0.0018 * Math.sin(ts * 19.7) + hover * 0.06 * driftXVel + pitch * 0.012;
 
+      // Speed written onto the image itself: the lens splits and the grain
+      // lifts the faster you go, so a boost is felt rather than just measured.
+      const vmag = Math.min(
+        1,
+        Math.abs(travelVelRef.current) / Math.max(1e-3, travelSpeedRef.current * boostMultiplierRef.current)
+      );
+      if (chromaRef.current) {
+        const o = chromaBaseRef.current * (1 + 6 * vmag * rm);
+        chromaRef.current.offset.set(o, o);
+      }
+      material.uniforms.uNoise.value = noiseBaseRef.current * (1 + 1.8 * vmag * rm);
+
       material.uniforms.iTime.value = now / 1000;
       renderer.clear(true, true, true);
       if (composerRef.current) {
@@ -867,6 +884,9 @@ export const GridScan: React.FC<GridScanProps> = ({
     if (chromaRef.current) {
       chromaRef.current.offset.set(chromaticAberration, chromaticAberration);
     }
+    // The base the per-frame speed effect scales up from.
+    chromaBaseRef.current = chromaticAberration;
+    noiseBaseRef.current = noiseIntensity;
   }, [
     lineThickness,
     linesColor,

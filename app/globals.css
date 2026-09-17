@@ -18,6 +18,14 @@
     to { opacity: 1; transform: none; }
   }
 
+  /* The one thing on screen asking to be acted on, so it breathes. */
+  --animate-prompt-pulse: prompt-pulse 2600ms ease-in-out infinite;
+
+  @keyframes prompt-pulse {
+    0%, 100% { opacity: 0.45; }
+    50% { opacity: 1; }
+  }
+
   --animate-slide-in-right: slide-in-right 450ms var(--ease-out-expo) both;
   --animate-slide-in-left: slide-in-left 450ms var(--ease-out-expo) both;
 
